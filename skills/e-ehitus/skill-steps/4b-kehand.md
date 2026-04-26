@@ -120,24 +120,42 @@ curl -s -X POST "$EHR/api/document/v1/document/DOC_NR/buildingBody/KEHAND_ID/bui
     "heatingTypes": [],
     "heatingSourceTypes": [],
     "energySourceTypes": [],
-    "technoSystems": [],
+    "technoSystems": [ ... see technoSystems format below — required, all 5 liik entries ... ],
     "actionType": {"code": "", "value": false, "description": "", "additionalDescription": "", "additionalValue": ""}
   }' | jq .
 ```
 
 ### technoSystems format
 
-`technoSystems` is an array of `BuildingPartTechnoSystemDto`:
+`technoSystems` is an array of `BuildingPartTechnoSystemDto`. **All 5 liik entries must be present in the initial POST — empty array or missing liik causes validation failure and the part is not saved.**
+
 ```json
 [
   {
     "liik": "TEHNO_ELEKLIIK",
-    "technoSystems": [{"tehnosysteemiliik": "...", "allikasKood": "...", "energiakandjaKood": "...", "ehos": false}]
+    "technoSystems": [{"tehnosysteemiliik": "...", "allikasKood": "...", "energiakandjaKood": "..."}]
   }
 ]
 ```
 
-Required `liik` values are returned as validation errors one at a time if missing: `TEHNO_ELEKLIIK`, `TEHNO_JAHUTUSA`, `TEHNO_MAJAPIDAMISGAAS`, `TEHNO_SOOJUSA`, `TEHNO_VENT`. Fill iteratively if needed.
+**Critical field rules (verified against live API):**
+- **`allikasKood`** = same value as `tehnosysteemiliik` (self-referential). Do not use `""`, `null`, or classifier group codes like `"ALA_TEHNO_VALIK_VORK"` — those all fail.
+- **`energiakandjaKood`** = energy carrier code (e.g. `"2607"` for elekter). For systems with no energy carrier, use `"2602"` (puudub) — do not use `""` or omit.
+- **`ehos`** — omit this field entirely. The OAS spec marks it required (`$ref: HooneOsaDto`), but sending it causes `false` → 400 (type mismatch), `null` → 500 (server NPE). Omitting it works in practice.
+
+Required `liik` values: `TEHNO_ELEKLIIK`, `TEHNO_JAHUTUSA`, `TEHNO_MAJAPIDAMISGAAS`, `TEHNO_SOOJUSA`, `TEHNO_VENT`.
+
+**Working example for a maasoojuspump + meh.vent üksikelamu (no cooling, no gas):**
+```json
+"technoSystems": [
+  {"liik":"TEHNO_ELEKLIIK",        "technoSystems":[{"tehnosysteemiliik":"2303","allikasKood":"2303","energiakandjaKood":"2607"}]},
+  {"liik":"TEHNO_SOOJUSA",         "technoSystems":[{"tehnosysteemiliik":"2518","allikasKood":"2518","energiakandjaKood":"2607"}]},
+  {"liik":"TEHNO_VENT",            "technoSystems":[{"tehnosysteemiliik":"2712","allikasKood":"2712","energiakandjaKood":"2607"}]},
+  {"liik":"TEHNO_JAHUTUSA",        "technoSystems":[{"tehnosysteemiliik":"20102","allikasKood":"20102","energiakandjaKood":"2602"}]},
+  {"liik":"TEHNO_MAJAPIDAMISGAAS", "technoSystems":[{"tehnosysteemiliik":"20402","allikasKood":"20402","energiakandjaKood":"2602"}]}
+]
+```
+Where: 2303=elektrivõrk, 2518=maasoojuspump, 2712=meh.vent soojustagastusega, 20102=jahutust ei ole, 20402=gaasi ei ole, 2607=elekter, 2602=puudub.
 
 ### Part-level classifiers
 
