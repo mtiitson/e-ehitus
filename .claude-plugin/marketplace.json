@@ -7,7 +7,10 @@
   "plugins": [
     {
       "name": "e-ehitus",
-      "source": ".",
+      "source": {
+        "source": "github",
+        "repo": "mtiitson/e-ehitus"
+      },
       "description": "Claude skill for Estonia's e-ehitus building register (ehr.ee) — submit ehitusluba, ehitusteatis, and andmete esitamise teatis via the EHR API with TARA authentication"
     }
   ]
