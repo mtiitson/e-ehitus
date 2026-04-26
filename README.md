@@ -18,7 +18,8 @@ Automatiseerib ehitusdokumentide ettevalmistamise ja esitamise EHR API kaudu —
 ### Claude Code
 
 ```bash
-/plugin install github:mtiitson/e-ehitus
+/plugin marketplace add mtiitson/e-ehitus
+/plugin install e-ehitus@mtiitson-e-ehitus
 ```
 
 ### Käsitsi
