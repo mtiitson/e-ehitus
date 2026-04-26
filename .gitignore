@@ -1,0 +1,9 @@
+skills/e-ehitus/js/node_modules/
+
+# Claude Code local settings
+.claude/
+settings.local.json
+
+# macOS
+.DS_Store
+**/.DS_Store
