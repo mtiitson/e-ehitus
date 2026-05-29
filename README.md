@@ -6,10 +6,11 @@ Automatiseerib ehitusdokumentide ettevalmistamise ja esitamise EHR API kaudu —
 
 ## Mida see teeb
 
-- **Ehitusloa taotlus** (11271) — ehitusloa taotlemine
-- **Ehitusteatis** (11201) — ehitusteatise esitamine
-- **Andmete esitamise teatis** (11525) — ehitisregistri andmete uuendamine
-- TARA autentimine (Mobiil-ID, Smart-ID, ID-kaart) läbi bundlitud Node.js skripti
+- **Ehitusloa taotlus**
+- **Ehitusteatis** 
+- **Andmete esitamise teatis**
+- **Projekteerimistingimuste taotlus**
+- TARA autentimine (Mobiil-ID, Smart-ID) 
 - Täielik ehitise andmete sisestus: mõõtmed, materjalid, tehnilised süsteemid, kehandid
 - Lisade üleslaadimine: ehitusprojekt, riigilõivu maksekorraldus, muud dokumendid
 
@@ -32,24 +33,12 @@ Automatiseerib ehitusdokumentide ettevalmistamise ja esitamise EHR API kaudu —
 6. Install
 
 
-Klooni repositoorium ja suuna Claude Code `skills/` kausta, või kopeeri `skills/e-ehitus/` oma kohalikku skills kausta.
-
 ## Eeldused
 
-- Node.js 18+ (Claude Code'iga kaasas)
-- `curl` (olemas macOS/Linuxis)
-- `jq` — macOS-il `brew install jq`
+- Node.js 18+
+- `curl` 
+- `jq` 
 
-## Autentimine
-
-Autentimine käib läbi TARA (riigi autentimisteenus) → Keycloak. Käivita bundlitud skript interaktiivselt:
-
-```bash
-node skills/e-ehitus/scripts/ehr-auth.js --mobile-id
-node skills/e-ehitus/scripts/ehr-auth.js --smart-id
-```
-
-Token salvestatakse `~/ehr-token.json` faili ja uuendatakse API päringute ajal automaatselt.
 
 ## Kasutamine
 
