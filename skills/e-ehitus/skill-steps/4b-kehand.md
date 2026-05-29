@@ -4,94 +4,83 @@ Required for: area fields (`closedAreaSquareMeters` etc.) and the `buildingbody.
 
 Coordinates are in **L-EST97 (EPSG:3301)**. See coordinate axis quirk in `skill-api-reference.md`.
 
-## 1. Create building body
+## 1. Resolve address from polygon
 
-`geoJson` is a **JSON string** (double-encoded) inside the outer JSON. Polygon ring must be closed (last coord = first coord).
+Run this before creating the building body — the address goes into the POST.
+
+```bash
+# Returns cadastral unit info — use properties.aadr_id (ads_oid is often null)
+AADR_ID=$(curl -s -X POST "$EHR/api/geoinfo/v1/getkatastrialbygeojson" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"geojson": {"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[e,n],...,[e,n]]]}, "properties": {}}}' \
+  | jq -r '.properties.aadr_id')
+
+# Build address object (note snake_case → camelCase mapping)
+ADDR=$(curl -s "$EHR/api/geoinfo/v1/getAddress?ids=$AADR_ID" \
+  -H "Authorization: Bearer $TOKEN" | jq '.[0] | {
+    aadrId: (.id | tonumber),
+    fullAddress: .taisaadress,
+    closeAddress: .lahiaadress,
+    koodaadress: .koodaadress,
+    tase1Id: (.tase1_id | tonumber), tase1Kood: .tase1_kood, tase1Nimetus: .tase1_nimetus,
+    tase2Id: (.tase2_id | tonumber), tase2Kood: .tase2_kood, tase2Nimetus: .tase2_nimetus,
+    tase3Id: (.tase3_id | tonumber), tase3Nimetus: .tase3_nimetus,
+    tase5Id: (.tase5_id | tonumber), tase5Nimetus: .tase5_nimetus,
+    tase7Id: (.tase7_id | tonumber), tase7Nimetus: .tase7_nimetus
+  }')
+```
+
+## 2. Heritage analysis
+
+Call this **before** the buildingBody POST.
+
+```bash
+curl -s -X PUT "$EHR/api/document/v1/document/DOC_NR/building/EHR_CODE/heritageAnalyze" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"geoJson": "{\"type\":\"Polygon\",\"coordinates\":[[[e,n],...,[e,n]]]}"}' | jq .
+```
+
+## 3. Create building body
+
+`geoJson` is a **JSON string** (double-encoded) inside the outer JSON. Polygon ring must be closed (last coord = first coord). Include `addresses` in the initial POST — no separate PUT step needed. `shapeType` is only required for PT (11002) — omit it for ehitusluba/ehitusteatis.
 
 ```bash
 curl -s -X POST "$EHR/api/document/v1/document/DOC_NR/building/EHR_CODE/buildingBody" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "buildingParts": [],
-    "spatialShape": {
-      "ehrCode": "EHR_CODE",
-      "coordinates": [],
-      "coordinatesFormPolygon": true,
-      "coordinatesTakenFromGeoMeasurements": true,
-      "nahtus": {"code": "HOONE", "value": "", "additionalValue": "H"},
-      "geoJson": "{\"type\":\"Polygon\",\"coordinates\":[[[575731.38,6595600.42],[575739.18,6595605.44],[575746.83,6595594.41],[575736.86,6595586.58],[575731.38,6595600.42]]]}",
-      "geoType": "Polygon",
-      "geoSource": "M"
+  -d "{
+    \"buildingParts\": [],
+    \"spatialShape\": {
+      \"ehrCode\": \"EHR_CODE\",
+      \"coordinates\": [],
+      \"coordinatesFormPolygon\": true,
+      \"coordinatesTakenFromGeoMeasurements\": true,
+      \"adsType\": \"ME\",
+      \"nahtus\": {\"code\": \"HOONE\", \"value\": \"\", \"additionalValue\": \"H\"},
+      \"shapeType\": {\"code\": \"SHAPE_TYPE_CODE\", \"value\": \"SHAPE_TYPE_CODE\"},
+      \"addresses\": [$(echo $ADDR)],
+      \"geoJson\": \"{\\\"type\\\":\\\"Polygon\\\",\\\"coordinates\\\":[[[538657.93,6586889.12],[538666.44,6586907.22],[538675.49,6586902.96],[538666.98,6586884.86],[538657.93,6586889.12]]]}\",
+      \"geoType\": \"Polygon\",
+      \"geoSource\": \"M\"
     },
-    "kehandId": 0
-  }' | jq '{kehandId: .kehandId}'
+    \"kehandId\": 0
+  }" | jq '{kehandId: .kehandId}'
 ```
 
 `geoSource: "M"` = mõõdistuselt (from geodetic survey). Save the returned `kehandId`.
 
 After calling this, re-fetch the document and include `buildingBodies` in any subsequent building PUT.
 
-## 2. Heritage analysis (UI also calls this automatically)
-
-```bash
-curl -s -X PUT "$EHR/api/document/v1/document/DOC_NR/building/EHR_CODE/heritageAnalyze" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"geoJson": "{\"type\":\"Polygon\",\"coordinates\":[...]}"}' | jq .
-```
-
-## 3. Resolve address from polygon
-
-```bash
-# Returns cadastral unit info — use returned ADS ID in getAddress
-curl -s -X POST "$EHR/api/geoinfo/v1/getkatastrialbygeojson" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"geojson": {"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [...]}, "properties": {}}}' | jq .
-
-# Resolve ADS ID to full address object
-curl -s "$EHR/api/geoinfo/v1/getAddress?ids=ADS_ID" \
-  -H "Authorization: Bearer $TOKEN" | jq .
-```
-
-## 4. Attach address to building body (required before adding parts)
-
-Omit the `operation` field from the outer object — sending `"operation": "U"` or `"INSERT"` causes 400.
-
-```bash
-curl -s -X PUT "$EHR/api/document/v1/document/DOC_NR/building/EHR_CODE/buildingBody/KEHAND_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "kehandId": KEHAND_ID,
-    "spatialShape": {
-      "ehrCode": "EHR_CODE",
-      "coordinates": [],
-      "coordinatesFormPolygon": true,
-      "coordinatesTakenFromGeoMeasurements": true,
-      "nahtus": {"code": "HOONE", "value": "", "additionalValue": "H"},
-      "geoJson": "...",
-      "geoType": "Polygon",
-      "geoSource": "M",
-      "addresses": [{
-        "aadrId": 6747034,
-        "fullAddress": "Harju maakond, Kuusalu vald, Valkla küla, Jõesuu tee 12",
-        "closeAddress": "Jõesuu tee 12",
-        "koodaadress": "37353895400000P6C0000D81700000000",
-        "tase1Id": 37, "tase1Kood": "37", "tase1Nimetus": "Harju maakond",
-        "tase2Id": 1603282, "tase2Kood": "353", "tase2Nimetus": "Kuusalu vald",
-        "tase3Id": 9828243, "tase3Nimetus": "Valkla küla",
-        "tase5Id": 9833892, "tase5Nimetus": "Jõesuu tee",
-        "tase7Id": 11121997, "tase7Nimetus": "12"
-      }]
-    },
-    "buildingParts": [],
-    "firstUsageYear": null
-  }' | jq .
-```
-
-`aadrId` and `tase*` values come from `getAddress?ids=ADS_ID`.
+**`shapeType` codes** (`KUJU_LIIK` classifier):
+| Code | When |
+|------|------|
+| `KUJU_LIIK_OLEMAS_OLEV` | Existing registered building |
+| `KUJU_LIIK_HOON_ALA` | New building, no detailplaneering |
+| `KUJU_LIIK_DP_KEHT_HOON_ALA` | New building, DP already exists |
+| `KUJU_LIIK_TEEN_EHIT_ASUK` | Service/ancillary building, no DP |
+| `KUJU_LIIK_DP_KEHT_TEEN_EHIT_ASUK` | Service building, DP exists |
 
 ## 5. Add building part (hooneosa)
 

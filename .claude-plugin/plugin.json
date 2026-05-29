@@ -1,7 +1,7 @@
 {
   "name": "e-ehitus",
   "description": "Claude skill for Estonia's e-ehitus building register (ehr.ee) — submit ehitusluba, ehitusteatis, projekteerimistingimused, and andmete esitamise teatis via the EHR API with TARA authentication",
-  "version": "1.1.1",
+  "version": "1.1.3",
   "author": {
     "name": "Mattias Tiitson",
     "email": "mattias@tiitson.ee"

@@ -127,30 +127,15 @@ No docNr switch check needed — 11002 never auto-switches.
 
 ### Step 4b (building body)
 
-Follow the step file. One ordering difference observed in the UI: heritage analyze is called **before** `POST buildingBody` (not after). Both orderings appear to work server-side, but follow the UI order to be safe:
+Follow the step file. UI-observed order (verified via HAR):
 
 ```
-1. POST buildingBody (no addresses yet)
+1. Resolve address (getkatastrialbygeojson → getAddress)
 2. PUT heritageAnalyze
-3. Resolve address (getkatastrialbygeojson → getAddress)
-4. PUT buildingBody/{kehandId} (attach address + set shapeType)
+3. POST buildingBody (include shapeType + addresses in the initial POST — no separate PUT needed)
 ```
 
-**PT requires `shapeType` on the kehand** — set it in step 4 (the address PUT). Without it, `blt.error.missing_shape_type_building_area` blocks submission. The `nahtus` stays `HOONE` as normal.
-
-Pick the appropriate code based on the situation:
-
-| `shapeType` code | UI label | When |
-|---|---|---|
-| `KUJU_LIIK_OLEMAS_OLEV` | olemas olev ehitis | Attaching to an existing registered building |
-| `KUJU_LIIK_HOON_ALA` | hoonestusala | New building, no detailplaneering |
-| `KUJU_LIIK_DP_KEHT_HOON_ALA` | detailplaneeringus kehtestatud hoonestusala | New building, DP already exists |
-| `KUJU_LIIK_TEEN_EHIT_ASUK` | teenindava ehitise asukoht | Service/ancillary building, no DP |
-| `KUJU_LIIK_DP_KEHT_TEEN_EHIT_ASUK` | detailplaneeringus kehtestatud teenindava ehitise asukoht | Service building, DP exists |
-
-```json
-"shapeType": {"code": "KUJU_LIIK_HOON_ALA", "value": "KUJU_LIIK_HOON_ALA"}
-```
+**PT requires `shapeType` on the kehand** — without it, `blt.error.missing_shape_type_building_area` blocks submission. Include it in the `POST buildingBody` `spatialShape`. For a new building without a DP, use `KUJU_LIIK_HOON_ALA`. All codes are in the step file.
 
 Note: the server returns the shapeType with `code: "KUJU_LIIK"` and `value: "KUJU_LIIK_HOON_ALA"` — that is correct, it is just how the classifier group is stored.
 
