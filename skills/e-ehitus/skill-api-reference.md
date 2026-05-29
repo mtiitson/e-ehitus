@@ -108,6 +108,8 @@ GET /api/document/v1/document/{docNr}/building/{buildingId}/derived-data
 - **Building parts bulk update**: body is a `BuildingPartUpdateValue` with `fieldName`, `type` discriminator (`multi-select`, `select`, `float`, `integer`, `string`, `addressDto`), `values`, and `updatableIds`
 - **File upload**: multipart POST — see Endpoint Authority table for details. `fileInfo` is a JSON blob `{"faty": <fatyId>, "docDate": "<ISO8601>"}`, `relType` is `"D"`. File type IDs from `GET /api/classifier/v1/classifier/faty/{documentType}`
 - **PUT responses**: some PUT endpoints return 204 No Content — treat as success
+- **Reading building data from a document**: `GET /api/document/v1/document/{docType}/{docNum}/building/{ehrCode}` returns **405 Method Not Allowed** — that path only supports PUT/DELETE. To read building data, fetch the parent document (`GET .../document/{docType}/{docNum}`) and extract `.buildingDatas[0]`.
+- **Document validation endpoint**: the correct endpoint is `completeApplicationChecks` — `GET .../document/{docNr}/validate` returns 404.
 - **Coordinates**: The API uses `pointX` = easting and `pointY` = northing — the **opposite** of the L-EST97 (EPSG:3301) surveying convention where X = northing and Y = easting. Architecture drawings follow the L-EST97 convention, so when reading `x=<value>` from a drawing, that value is northing → submit as `pointY`. Estonia's bounding box: easting 370,000–740,000 m, northing 6,375,000–6,635,000 m. If a coordinate's range doesn't disambiguate (both values within 370k–740k), ask the user.
 
 - **Updating building geometry** — use the dedicated building body endpoint, not the full building PUT:

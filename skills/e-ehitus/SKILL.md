@@ -1,6 +1,6 @@
 ---
 name: e-ehitus
-description: Use whenever the user needs to submit, prepare, look up, or automate anything in Estonia's ehr.ee building register (e-ehitus platform) — including ehitusluba, ehitusteatis, andmete esitamise teatis, building data lookups, authentication with TARA/Mobile-ID/Smart-ID, or any API call to livekluster.ehr.ee. Covers authentication, Ehitusloa taotlus, Ehitusteatis, and Andmete esitamise teatis workflows, script-based API calls, form field semantics, API structure, and classifier reference.
+description: Use whenever the user needs to submit, prepare, look up, or automate anything in Estonia's ehr.ee building register (e-ehitus platform) — including ehitusluba, ehitusteatis, projekteerimistingimused, andmete esitamise teatis, building data lookups, authentication with TARA/Mobile-ID/Smart-ID, or any API call to livekluster.ehr.ee. Covers authentication, Ehitusloa taotlus, Ehitusteatis, Projekteerimistingimuste taotlus, and Andmete esitamise teatis workflows, script-based API calls, form field semantics, API structure, and classifier reference.
 ---
 
 # ehr.ee — e-ehituse platvorm
@@ -45,6 +45,7 @@ Common danger zones:
 |----------|-----------|--------------|----------|
 | **Ehitusloa taotlus** | `11271` | `skill-workflows/ehitusluba.md` | New/renovation/demolition requiring ehitusluba |
 | **Ehitusteatis** | `11201` | `skill-workflows/ehitusteatis.md` | New/renovation/demolition — ehitusluba not required |
+| **Projekteerimistingimuste taotlus** | `11002` | `skill-workflows/projekteerimistingimused.md` | Design conditions request before project design, €25 flat fee |
 | **Andmete esitamise teatis** | `11525` | `skill-workflows/andmete-teatis.md` | Updating building registry data |
 
 **Start every new document task by reading the relevant workflow file.** The workflow file defines the step sequence and type-specific variations. Then read individual step files as you execute each step.
