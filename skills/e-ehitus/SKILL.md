@@ -5,19 +5,25 @@ description: Use whenever the user needs to submit, prepare, look up, or automat
 
 # ehr.ee — e-ehituse platvorm
 
-Estonia's building register (ehitisregister). One bundled Node.js script — `ehr-auth.js` — handles TARA authentication and token management. API calls use `ehr-api.js` (with `curl` only for multipart file uploads).
+Estonia's building register (ehitisregister). One bundled Node.js script — `ehr-auth` — handles TARA authentication and token management. API calls use `ehr-api` (with `curl` only for multipart file uploads).
 
 Base URL: `https://livekluster.ehr.ee`
 
 ## Setup
 
-No installation needed. Pre-built script is in `scripts/` next to this file.
+No installation needed. Pre-built scripts are in `scripts/` next to this file.
 
-**Prerequisites:** Node.js 18+ (bundled with Claude Code), `curl` (standard everywhere), `jq` (`brew install jq` on macOS).
+**Prerequisites:** Node.js 18+ (bundled with Claude Code), `curl` (standard everywhere), `jq` (`brew install jq` on macOS, `winget install jqlang.jq` on Windows).
 
-**Resolving `<skill-dir>`:** Throughout this skill, `<skill-dir>` means the directory containing this SKILL.md. Find it with:
+**One-time setup** — installs `ehr-auth` and `ehr-api` as global commands:
 ```bash
-find ~/.claude -name "ehr-auth.js" 2>/dev/null | head -1 | xargs dirname
+node <skill-dir>/setup.js
+```
+On macOS/Linux, also add `~/.local/bin` to your PATH if prompted. After setup, `ehr-auth` and `ehr-api` are available directly — no path prefix needed.
+
+**Resolving `<skill-dir>`:** Only needed to run setup.js. Find it with:
+```bash
+find ~/.claude -name "setup.js" 2>/dev/null | head -1 | xargs dirname
 ```
 
 To rebuild after source changes: `cd <skill-dir>/js && npm install && node build.mjs`
@@ -44,7 +50,7 @@ Common danger zones:
 **Before starting any workflow**, check which role the user is acting under:
 
 ```bash
-node <skill-dir>/scripts/ehr-api.js GET /api/user/v1/person/details \
+ehr-api GET /api/user/v1/person/details \
   | jq '{activeRole: .activeRole.id, roles: [.businessUsers[] | {id: .id, name: (.businessName // "isiklik")}]}'
 ```
 
@@ -52,14 +58,14 @@ If `businessUsers` contains more than one entry, **ask the user which role to us
 
 ```bash
 # 1. Switch role
-node <skill-dir>/scripts/ehr-api.js POST /api/user/v1/auth/update/active \
+ehr-api POST /api/user/v1/auth/update/active \
   '{"newUserId": TARGET_ID}'
 
 # 2. Force token refresh — the active role is embedded in the JWT's ehr.active_role
 #    claim, so the old token still carries the previous role. Drop the cached access
 #    token so --print-token fetches a fresh one from Keycloak.
 jq '.expiresAt = 0' ~/ehr-token.json > /tmp/ehr-token-tmp.json && mv /tmp/ehr-token-tmp.json ~/ehr-token.json
-TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
+TOKEN=$(ehr-auth --print-token)
 ```
 
 No re-authentication (TARA/Mobile-ID) is required. Skip this step only if the user has already confirmed their active role earlier in the conversation.
@@ -96,22 +102,22 @@ The system auto-switches between `11271` and `11201` based on kavandatav tegevus
 
 **After every building data PUT, verify the docNr is still valid:**
 ```bash
-node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR | jq '.applicationNumber // "404"'
+ehr-api GET /api/document/v1/document/DOC_NR | jq '.applicationNumber // "404"'
 # If null/404 → find the new docNr:
-node <skill-dir>/scripts/ehr-api.js POST /api/myviews/v1/search/documents \
+ehr-api POST /api/myviews/v1/search/documents \
   '{"connectedPerson": USER_ID, "documentState": ["DO_DOKUSEIS_KOOSTAMISEL"], "documentTypeCode": ["11201","11271"], "offset": 0, "limit": 5}' \
   | jq '[.content[] | {nr: .docNr, type: .documentType, ehr: .ehrCode}]'
 ```
 
 ## Authentication
 
-Auth goes through TARA (Riigi autentimisteenus) → Keycloak. Token cached in `~/ehr-token.json` (~15 min), auto-refreshed by `ehr-auth.js --print-token`.
+Auth goes through TARA (Riigi autentimisteenus) → Keycloak. Token cached in `~/ehr-token.json` (~15 min), auto-refreshed by `ehr-auth --print-token`.
 
 **When the token is missing or expired:**
 
 Tell the user to run this directly in their terminal (not via `!` — it's interactive):
 ```
-node <skill-dir>/scripts/ehr-auth.js
+ehr-auth
 ```
 Flags: `-m` / `--mobile-id` for Mobile-ID, `-s` / `--smart-id` for Smart-ID.
 
@@ -119,27 +125,27 @@ The script prompts interactively, shows the Mobile-ID challenge code or Smart-ID
 
 ## Making API calls
 
-Use `ehr-api.js` for all API calls — it handles token management automatically:
+Use `ehr-api` for all API calls — it handles token management automatically:
 
 ```bash
 # GET
-node <skill-dir>/scripts/ehr-api.js GET /api/path | jq .
+ehr-api GET /api/path | jq .
 
 # POST / PUT with inline body
-node <skill-dir>/scripts/ehr-api.js POST /api/path '{"key":"value"}' | jq .
+ehr-api POST /api/path '{"key":"value"}' | jq .
 
 # POST / PUT with body from file (preferred for large payloads)
-node <skill-dir>/scripts/ehr-api.js POST /api/path @payload.json | jq .
+ehr-api POST /api/path @payload.json | jq .
 
 # DELETE
-node <skill-dir>/scripts/ehr-api.js DELETE /api/path
+ehr-api DELETE /api/path
 ```
 
-Token is refreshed automatically. If both access and refresh tokens are gone, it exits with an error — re-run `ehr-auth.js` interactively to re-authenticate.
+Token is refreshed automatically. If both access and refresh tokens are gone, it exits with an error — re-run `ehr-auth` interactively to re-authenticate.
 
 For file uploads (multipart), fall back to curl:
 ```bash
-TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
+TOKEN=$(ehr-auth --print-token)
 EHR=https://livekluster.ehr.ee
 
 # File upload (multipart)
@@ -152,9 +158,9 @@ curl -s -X POST "$EHR/api/file-upload-api/v1/fileWithInfoAndDocRel" \
 
 ```
 
-Classifiers via ehr-api.js:
+Classifiers via ehr-api:
 ```bash
-node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/classifiers/KASUTUS_OTSTARVE,KONS_MATERJAL | jq .
+ehr-api GET /api/document/v1/classifiers/KASUTUS_OTSTARVE,KONS_MATERJAL | jq .
 
 Trust the live API over `skill-classifiers.md` if they conflict.
 

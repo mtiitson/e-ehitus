@@ -11,10 +11,10 @@ Fill these fields first — they determine whether the system auto-switches doc 
 **After every building data PUT, verify docNr is still valid** (dynamic type switching creates a new docNr):
 
 ```bash
-node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR | jq '.applicationNumber // "404"'
+ehr-api GET /api/document/v1/document/DOC_NR | jq '.applicationNumber // "404"'
 
 # If null/404 — find the new docNr:
-node <skill-dir>/scripts/ehr-api.js POST /api/myviews/v1/search/documents \
+ehr-api POST /api/myviews/v1/search/documents \
   "{\"connectedPerson\": $USER_ID, \"documentState\": [\"DO_DOKUSEIS_KOOSTAMISEL\"], \"documentTypeCode\": [\"11201\",\"11271\"], \"offset\": 0, \"limit\": 5}" \
   | jq '[.content[] | {nr: .docNr, type: .documentType, ehr: .ehrCode}]'
 ```
@@ -25,12 +25,12 @@ The building PUT response (`BuildingDataDto`) does **not** contain the new docNr
 
 ```bash
 # Fetch current building state from the document
-node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR | jq '.buildingDatas[0]' > /tmp/building.json
+ehr-api GET /api/document/v1/document/DOC_NR | jq '.buildingDatas[0]' > /tmp/building.json
 
 # Edit /tmp/building.json — add/update fields from project data
 
 # PUT
-node <skill-dir>/scripts/ehr-api.js PUT /api/document/v1/document/DOC_NR/building/EHR_CODE \
+ehr-api PUT /api/document/v1/document/DOC_NR/building/EHR_CODE \
   @/tmp/building.json | jq '{buildingId, ehrCode}'
 ```
 

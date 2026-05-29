@@ -3,7 +3,7 @@
 Required roles are determined server-side — do not hardcode. Always read them from the document:
 
 ```bash
-node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR \
+ehr-api GET /api/document/v1/document/DOC_NR \
   | jq '{required: [.relatedEntities.requiredRoles[].value], present: [.relatedEntities.persons[].role[].value]}'
 ```
 
@@ -12,7 +12,7 @@ The difference between `required` and `present` is what needs to be filled.
 ## Search for a person
 
 ```bash
-node <skill-dir>/scripts/ehr-api.js GET "/api/user/v1/search/searchPerson?input=PERSONAL_CODE&xRoad=false" \
+ehr-api GET "/api/user/v1/search/searchPerson?input=PERSONAL_CODE&xRoad=false" \
   | jq '{id, firstName, familyName, idCode, citizenship}'
 ```
 
@@ -21,9 +21,9 @@ node <skill-dir>/scripts/ehr-api.js GET "/api/user/v1/search/searchPerson?input=
 Fetch the full document, add the person to `relatedEntities.persons[]`, PUT it back:
 
 ```bash
-node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR > /tmp/document.json
+ehr-api GET /api/document/v1/document/DOC_NR > /tmp/document.json
 # Edit /tmp/document.json — add person object to relatedEntities.persons[]
-node <skill-dir>/scripts/ehr-api.js PUT /api/document/v1/document/DOC_NR \
+ehr-api PUT /api/document/v1/document/DOC_NR \
   @/tmp/document.json | jq .
 ```
 

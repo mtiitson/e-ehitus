@@ -2,10 +2,10 @@
 
 ```bash
 # Get user ID
-USER_ID=$(node <skill-dir>/scripts/ehr-api.js GET /api/user/v1/person/details | jq '.id')
+USER_ID=$(ehr-api GET /api/user/v1/person/details | jq '.id')
 
 # Search drafts — adjust documentTypeCode for the doc type being submitted
-node <skill-dir>/scripts/ehr-api.js POST /api/myviews/v1/search/documents \
+ehr-api POST /api/myviews/v1/search/documents \
   "{\"connectedPerson\": $USER_ID, \"documentState\": [\"DO_DOKUSEIS_KOOSTAMISEL\"], \"documentTypeCode\": [\"11271\",\"11201\"], \"offset\": 0, \"limit\": 20}" \
   | jq '[.content[] | {nr: .docNr, type: .documentType, address: .buildingAddress}]'
 ```

@@ -3,7 +3,7 @@
 ## Run validation
 
 ```bash
-node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR/completeApplicationChecks \
+ehr-api GET /api/document/v1/document/DOC_NR/completeApplicationChecks \
   | jq '{errors: .arrayOfErrors, warnings: .arrayOfWarnings}'
 ```
 

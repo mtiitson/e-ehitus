@@ -77,18 +77,18 @@ Users may represent multiple roles — personal + one or more companies. The act
 
 ```bash
 # 1. List available roles
-node <skill-dir>/scripts/ehr-api.js GET /api/user/v1/person/details \
+ehr-api GET /api/user/v1/person/details \
   | jq '{activeRole: .activeRole, available: [.businessUsers[] | {id: .id, name: (.businessName // "personal")}]}'
 
 # 2. Switch to a role
-node <skill-dir>/scripts/ehr-api.js POST /api/user/v1/auth/update/active \
+ehr-api POST /api/user/v1/auth/update/active \
   '{"newUserId": TARGET_ID}'
 ```
 
 `businessUsers[].id` with no `businessName` = the personal role. No re-authentication (TARA/Mobile-ID) required. **After switching, force a token refresh** — the active role is encoded in the JWT's `ehr.active_role` claim, so the old token carries the previous role until refreshed:
 ```bash
 jq '.expiresAt = 0' ~/ehr-token.json > /tmp/t.json && mv /tmp/t.json ~/ehr-token.json
-TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
+TOKEN=$(ehr-auth --print-token)
 ```
 The `connectedPerson` for document search is `businessUsers[].id` of the active role (not the top-level `id`).
 
