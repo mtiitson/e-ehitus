@@ -3,8 +3,7 @@
 ## Run validation
 
 ```bash
-curl -s "$EHR/api/document/v1/document/DOC_NR/completeApplicationChecks" \
-  -H "Authorization: Bearer $TOKEN" \
+node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR/completeApplicationChecks \
   | jq '{errors: .arrayOfErrors, warnings: .arrayOfWarnings}'
 ```
 

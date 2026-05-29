@@ -3,7 +3,7 @@
 Required roles are determined server-side — do not hardcode. Always read them from the document:
 
 ```bash
-curl -s "$EHR/api/document/v1/document/DOC_NR" -H "Authorization: Bearer $TOKEN" \
+node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR \
   | jq '{required: [.relatedEntities.requiredRoles[].value], present: [.relatedEntities.persons[].role[].value]}'
 ```
 
@@ -12,8 +12,8 @@ The difference between `required` and `present` is what needs to be filled.
 ## Search for a person
 
 ```bash
-curl -s "$EHR/api/user/v1/search/searchPerson?input=PERSONAL_CODE&xRoad=false" \
-  -H "Authorization: Bearer $TOKEN" | jq '{id, firstName, familyName, idCode, citizenship}'
+node <skill-dir>/scripts/ehr-api.js GET "/api/user/v1/search/searchPerson?input=PERSONAL_CODE&xRoad=false" \
+  | jq '{id, firstName, familyName, idCode, citizenship}'
 ```
 
 ## Add person to document
@@ -21,13 +21,10 @@ curl -s "$EHR/api/user/v1/search/searchPerson?input=PERSONAL_CODE&xRoad=false" \
 Fetch the full document, add the person to `relatedEntities.persons[]`, PUT it back:
 
 ```bash
-curl -s "$EHR/api/document/v1/document/DOC_NR" \
-  -H "Authorization: Bearer $TOKEN" > /tmp/document.json
+node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR > /tmp/document.json
 # Edit /tmp/document.json — add person object to relatedEntities.persons[]
-curl -s -X PUT "$EHR/api/document/v1/document/DOC_NR" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d @/tmp/document.json | jq .
+node <skill-dir>/scripts/ehr-api.js PUT /api/document/v1/document/DOC_NR \
+  @/tmp/document.json | jq .
 ```
 
 Person object field mapping:

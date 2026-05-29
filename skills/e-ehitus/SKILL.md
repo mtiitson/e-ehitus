@@ -5,7 +5,7 @@ description: Use whenever the user needs to submit, prepare, look up, or automat
 
 # ehr.ee — e-ehituse platvorm
 
-Estonia's building register (ehitisregister). One bundled Node.js script — `ehr-auth.js` — handles TARA authentication and token management. All API calls use `curl`.
+Estonia's building register (ehitisregister). One bundled Node.js script — `ehr-auth.js` — handles TARA authentication and token management. API calls use `ehr-api.js` (with `curl` only for multipart file uploads).
 
 Base URL: `https://livekluster.ehr.ee`
 
@@ -44,8 +44,7 @@ Common danger zones:
 **Before starting any workflow**, check which role the user is acting under:
 
 ```bash
-TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
-curl -s "$EHR/api/user/v1/person/details" -H "Authorization: Bearer $TOKEN" \
+node <skill-dir>/scripts/ehr-api.js GET /api/user/v1/person/details \
   | jq '{activeRole: .activeRole.id, roles: [.businessUsers[] | {id: .id, name: (.businessName // "isiklik")}]}'
 ```
 
@@ -53,10 +52,8 @@ If `businessUsers` contains more than one entry, **ask the user which role to us
 
 ```bash
 # 1. Switch role
-curl -s -X POST "$EHR/api/user/v1/auth/update/active" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"newUserId": TARGET_ID}'
+node <skill-dir>/scripts/ehr-api.js POST /api/user/v1/auth/update/active \
+  '{"newUserId": TARGET_ID}'
 
 # 2. Force token refresh — the active role is embedded in the JWT's ehr.active_role
 #    claim, so the old token still carries the previous role. Drop the cached access
@@ -99,13 +96,10 @@ The system auto-switches between `11271` and `11201` based on kavandatav tegevus
 
 **After every building data PUT, verify the docNr is still valid:**
 ```bash
-curl -s "$EHR/api/document/v1/document/DOC_NR" \
-  -H "Authorization: Bearer $TOKEN" | jq '.applicationNumber // "404"'
+node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR | jq '.applicationNumber // "404"'
 # If null/404 → find the new docNr:
-curl -s -X POST "$EHR/api/myviews/v1/search/documents" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"connectedPerson": USER_ID, "documentState": ["DO_DOKUSEIS_KOOSTAMISEL"], "documentTypeCode": ["11201","11271"], "offset": 0, "limit": 5}' \
+node <skill-dir>/scripts/ehr-api.js POST /api/myviews/v1/search/documents \
+  '{"connectedPerson": USER_ID, "documentState": ["DO_DOKUSEIS_KOOSTAMISEL"], "documentTypeCode": ["11201","11271"], "offset": 0, "limit": 5}' \
   | jq '[.content[] | {nr: .docNr, type: .documentType, ehr: .ehrCode}]'
 ```
 
@@ -148,9 +142,6 @@ For file uploads (multipart), fall back to curl:
 TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
 EHR=https://livekluster.ehr.ee
 
-# DELETE
-curl -s -X DELETE "$EHR/api/path" -H "Authorization: Bearer $TOKEN" | jq .
-
 # File upload (multipart)
 curl -s -X POST "$EHR/api/file-upload-api/v1/fileWithInfoAndDocRel" \
   -H "Authorization: Bearer $TOKEN" \
@@ -180,7 +171,7 @@ jq '.components.schemas.PurposeDto' <skill-dir>/references/openapi-document.json
 | `skill-workflows/ehitusluba.md` | Step sequence + variations for ehitusloa taotlus (11271) | Starting an ehitusluba task |
 | `skill-workflows/ehitusteatis.md` | Step sequence + variations for ehitusteatis (11201) | Starting an ehitusteatis task |
 | `skill-workflows/andmete-teatis.md` | Step sequence + variations for andmete esitamise teatis (11525) | Starting a data update task |
-| `skill-steps/1-source.md` … `skill-steps/7-validate.md` | Detailed instructions + curl commands for each workflow step | Executing a specific step |
+| `skill-steps/1-source.md` … `skill-steps/7-validate.md` | Detailed instructions + API commands for each workflow step | Executing a specific step |
 | `references/openapi-document.json` | Full OpenAPI spec for document/building/classifier APIs | **Before constructing any request body** |
 | `references/openapi-myviews.json` | OpenAPI spec for search/myviews API | Searching documents |
 | `references/openapi-building-project.json` | OpenAPI spec for building project file API | Step 6 — uploading ehitusprojekt files |

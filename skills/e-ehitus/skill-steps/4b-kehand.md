@@ -10,15 +10,12 @@ Run this before creating the building body — the address goes into the POST.
 
 ```bash
 # Returns cadastral unit info — use properties.aadr_id (ads_oid is often null)
-AADR_ID=$(curl -s -X POST "$EHR/api/geoinfo/v1/getkatastrialbygeojson" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"geojson": {"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[e,n],...,[e,n]]]}, "properties": {}}}' \
+AADR_ID=$(node <skill-dir>/scripts/ehr-api.js POST /api/geoinfo/v1/getkatastrialbygeojson \
+  '{"geojson": {"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[e,n],...,[e,n]]]}, "properties": {}}}' \
   | jq -r '.properties.aadr_id')
 
 # Build address object (note snake_case → camelCase mapping)
-ADDR=$(curl -s "$EHR/api/geoinfo/v1/getAddress?ids=$AADR_ID" \
-  -H "Authorization: Bearer $TOKEN" | jq '.[0] | {
+ADDR=$(node <skill-dir>/scripts/ehr-api.js GET "/api/geoinfo/v1/getAddress?ids=$AADR_ID" | jq '.[0] | {
     aadrId: (.id | tonumber),
     fullAddress: .taisaadress,
     closeAddress: .lahiaadress,
@@ -36,10 +33,8 @@ ADDR=$(curl -s "$EHR/api/geoinfo/v1/getAddress?ids=$AADR_ID" \
 Call this **before** the buildingBody POST.
 
 ```bash
-curl -s -X PUT "$EHR/api/document/v1/document/DOC_NR/building/EHR_CODE/heritageAnalyze" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"geoJson": "{\"type\":\"Polygon\",\"coordinates\":[[[e,n],...,[e,n]]]}"}' | jq .
+node <skill-dir>/scripts/ehr-api.js PUT /api/document/v1/document/DOC_NR/building/EHR_CODE/heritageAnalyze \
+  '{"geoJson": "{\"type\":\"Polygon\",\"coordinates\":[[[e,n],...,[e,n]]]}"}' | jq .
 ```
 
 ## 3. Create building body
@@ -47,10 +42,8 @@ curl -s -X PUT "$EHR/api/document/v1/document/DOC_NR/building/EHR_CODE/heritageA
 `geoJson` is a **JSON string** (double-encoded) inside the outer JSON. Polygon ring must be closed (last coord = first coord). Include `addresses` in the initial POST — no separate PUT step needed. `shapeType` is only required for PT (11002) — omit it for ehitusluba/ehitusteatis.
 
 ```bash
-curl -s -X POST "$EHR/api/document/v1/document/DOC_NR/building/EHR_CODE/buildingBody" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
+node <skill-dir>/scripts/ehr-api.js POST /api/document/v1/document/DOC_NR/building/EHR_CODE/buildingBody \
+  "{
     \"buildingParts\": [],
     \"spatialShape\": {
       \"ehrCode\": \"EHR_CODE\",
@@ -85,10 +78,8 @@ After calling this, re-fetch the document and include `buildingBodies` in any su
 ## 5. Add building part (hooneosa)
 
 ```bash
-curl -s -X POST "$EHR/api/document/v1/document/DOC_NR/buildingBody/KEHAND_ID/buildingPart" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
+node <skill-dir>/scripts/ehr-api.js POST /api/document/v1/document/DOC_NR/buildingBody/KEHAND_ID/buildingPart \
+  '{
     "livingPart": true,
     "buildingPartType": "K",
     "roomCount": 4,
@@ -149,8 +140,7 @@ Where: 2303=elektrivõrk, 2518=maasoojuspump, 2712=meh.vent soojustagastusega, 2
 ### Part-level classifiers
 
 ```bash
-curl -s "$EHR/api/document/v1/classifiers/TEHNO_WC,TEHNO_OPESU,TEHNO_VESI,TEHNO_KANAL" \
-  -H "Authorization: Bearer $TOKEN" | jq .
+node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/classifiers/TEHNO_WC,TEHNO_OPESU,TEHNO_VESI,TEHNO_KANAL | jq .
 ```
 
 | Field | Classifier |
@@ -163,6 +153,5 @@ curl -s "$EHR/api/document/v1/classifiers/TEHNO_WC,TEHNO_OPESU,TEHNO_VESI,TEHNO_
 ## 6. Verify derived area totals
 
 ```bash
-curl -s "$EHR/api/document/v1/document/DOC_NR/building/BUILDING_ID/derived-data" \
-  -H "Authorization: Bearer $TOKEN" | jq .
+node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/document/DOC_NR/building/BUILDING_ID/derived-data | jq .
 ```
