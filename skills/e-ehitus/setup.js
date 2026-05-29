@@ -14,19 +14,15 @@ const isWindows = platform() === "win32";
 const commands = ["ehr-auth", "ehr-api"];
 
 function getInstallDir() {
-  if (isWindows) {
-    try {
-      // npm's global prefix is always on PATH for Node/npm users on Windows
-      return execSync("npm prefix -g", { encoding: "utf8" }).trim();
-    } catch {
-      return join(process.env.APPDATA ?? homedir(), "npm");
-    }
+  try {
+    const prefix = execSync("npm prefix -g", { encoding: "utf8" }).trim();
+    return isWindows ? prefix : join(prefix, "bin");
+  } catch {
+    // fallback
+    return isWindows
+      ? join(process.env.APPDATA ?? homedir(), "npm")
+      : join(homedir(), ".local", "bin");
   }
-  return join(homedir(), ".local", "bin");
-}
-
-function isOnPath(dir) {
-  return (process.env.PATH ?? "").split(isWindows ? ";" : ":").some(p => p === dir);
 }
 
 const installDir = getInstallDir();
@@ -52,11 +48,6 @@ for (const cmd of commands) {
     chmodSync(shimPath, 0o755);
     console.log(`Installed: ${shimPath}`);
   }
-}
-
-if (!isWindows && !isOnPath(installDir)) {
-  console.log(`\n~/.local/bin is not on your PATH. Add this to ~/.zshrc or ~/.bashrc:`);
-  console.log(`  export PATH="$HOME/.local/bin:$PATH"`);
 }
 
 console.log("\nDone. Test with: ehr-auth --help");
