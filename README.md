@@ -15,14 +15,22 @@ Automatiseerib ehitusdokumentide ettevalmistamise ja esitamise EHR API kaudu —
 
 ## Paigaldamine
 
-### Claude Code
+### Claude Code CLI
 
 ```bash
 /plugin marketplace add mtiitson/e-ehitus
 /plugin install e-ehitus@mtiitson-e-ehitus
 ```
 
-### Käsitsi
+### Claude Code Desktop
+
+1. Vajuta Customize
+2. Personal Plugins juures vajuta '+'
+3. Create Plugin > Add marketplace
+4. Sisesta `mtiitson/e-ehitus`
+5. Vali E ehitus
+6. Install
+
 
 Klooni repositoorium ja suuna Claude Code `skills/` kausta, või kopeeri `skills/e-ehitus/` oma kohalikku skills kausta.
 
