@@ -13,5 +13,6 @@ const common = {
 };
 
 await build({ ...common, entryPoints: [join(__dirname, "src/ehr-auth.js")], outfile: join(outDir, "ehr-auth.js") });
+await build({ ...common, entryPoints: [join(__dirname, "src/ehr-api.js")], outfile: join(outDir, "ehr-api.js") });
 
-console.log("Built → scripts/ehr-auth.js");
+console.log("Built → scripts/ehr-auth.js, scripts/ehr-api.js");

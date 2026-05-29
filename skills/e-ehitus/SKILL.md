@@ -125,23 +125,28 @@ The script prompts interactively, shows the Mobile-ID challenge code or Smart-ID
 
 ## Making API calls
 
-Get a valid token once per session, then reuse it:
-```bash
-TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
-EHR=https://livekluster.ehr.ee
-```
-
-`--print-token` silently refreshes via Keycloak if the access token is expired. If both tokens are gone it exits with an error — re-run `ehr-auth.js` interactively.
+Use `ehr-api.js` for all API calls — it handles token management automatically:
 
 ```bash
 # GET
-curl -s "$EHR/api/path" -H "Authorization: Bearer $TOKEN" | jq .
+node <skill-dir>/scripts/ehr-api.js GET /api/path | jq .
 
-# POST / PUT — body from file (preferred for large payloads)
-curl -s -X POST "$EHR/api/path" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d @payload.json | jq .
+# POST / PUT with inline body
+node <skill-dir>/scripts/ehr-api.js POST /api/path '{"key":"value"}' | jq .
+
+# POST / PUT with body from file (preferred for large payloads)
+node <skill-dir>/scripts/ehr-api.js POST /api/path @payload.json | jq .
+
+# DELETE
+node <skill-dir>/scripts/ehr-api.js DELETE /api/path
+```
+
+Token is refreshed automatically. If both access and refresh tokens are gone, it exits with an error — re-run `ehr-auth.js` interactively to re-authenticate.
+
+For file uploads (multipart), fall back to curl:
+```bash
+TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
+EHR=https://livekluster.ehr.ee
 
 # DELETE
 curl -s -X DELETE "$EHR/api/path" -H "Authorization: Bearer $TOKEN" | jq .
@@ -154,10 +159,11 @@ curl -s -X POST "$EHR/api/file-upload-api/v1/fileWithInfoAndDocRel" \
   -F "docNr=DOC_NR" \
   -F "relType=D" | jq .
 
-# Classifiers
-curl -s "$EHR/api/document/v1/classifiers/KASUTUS_OTSTARVE,KONS_MATERJAL" \
-  -H "Authorization: Bearer $TOKEN" | jq .
 ```
+
+Classifiers via ehr-api.js:
+```bash
+node <skill-dir>/scripts/ehr-api.js GET /api/document/v1/classifiers/KASUTUS_OTSTARVE,KONS_MATERJAL | jq .
 
 Trust the live API over `skill-classifiers.md` if they conflict.
 
