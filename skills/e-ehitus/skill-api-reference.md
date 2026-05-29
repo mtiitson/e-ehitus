@@ -71,6 +71,24 @@ Each data domain has a specific endpoint that is authoritative for persisting it
 | **File attachments (delete)** | `DELETE /api/file-upload-api/v1/{docNr}/file/{fileId}` | Single call |
 | **Document metadata** | `PUT .../document/{docNr}` | Status, notes, etc. |
 
+## Role switching (esindamine)
+
+Users may represent multiple roles — personal + one or more companies. The active role determines whose name documents are created under and what documents appear in searches.
+
+```bash
+# 1. List available roles
+curl -s "$EHR/api/user/v1/person/details" -H "Authorization: Bearer $TOKEN" \
+  | jq '{activeRole: .activeRole, available: [.businessUsers[] | {id: .id, name: (.businessName // "personal")}]}'
+
+# 2. Switch to a role
+curl -s -X POST "$EHR/api/user/v1/auth/update/active" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"newUserId": TARGET_ID}'
+```
+
+`businessUsers[].id` with no `businessName` = the personal role. No re-authentication required — works with the existing token. The `connectedPerson` value for document search is the `businessUsers[].id` of the active role (not the top-level `id`).
+
 **Adding a person** requires a prior search to get `personId`:
 ```
 GET /api/user/v1/search/searchPerson?input={personalCode}&xRoad=false
@@ -190,7 +208,8 @@ For services without a local copy, fetch the OAS JSON directly from the API (e.g
 | `/api/building/v2/buildingData?ehr_code={code}` | GET | Building registry data |
 | `/api/document/v1/ehbuilding/{ehrCode}` | GET | Building data for summary/comparison view |
 | `/api/myviews/v1/search/documents` | POST | Search user's documents |
-| `/api/user/v1/person/details` | GET | Current user info (use `id` field as `connectedPerson`) |
+| `/api/user/v1/person/details` | GET | Current user info (use `id` field as `connectedPerson`). Also returns `activeRole` and `businessUsers[]` for role switching — see below. |
+| `/api/user/v1/auth/update/active` | POST | Switch active represented role — body: `{"newUserId": ID}` where ID is from `businessUsers[].id` |
 | `/api/user/v1/search/searchPerson?input={code}&xRoad=false` | GET | Search person by personal code (returns `personId`, name, citizenship) |
 | `/api/file-upload-api/v1/fileWithInfoAndDocRel` | POST | Upload file attachment (multipart: `file`, `fileInfo` JSON, `docNr`, `relType`) |
 | `/api/document/v1/document/{docNr}/files` | GET | List document file attachments |

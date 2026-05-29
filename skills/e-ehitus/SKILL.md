@@ -39,6 +39,27 @@ Common danger zones:
 - **Measurements** — use only values from an explicit source. Do not derive unlisted values.
 - **Person details** (emails, roles) — ask the user; do not search or infer.
 
+## Role selection (esindamine)
+
+**Before starting any workflow**, check which role the user is acting under:
+
+```bash
+TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
+curl -s "$EHR/api/user/v1/person/details" -H "Authorization: Bearer $TOKEN" \
+  | jq '{activeRole: .activeRole.id, roles: [.businessUsers[] | {id: .id, name: (.businessName // "isiklik")}]}'
+```
+
+If `businessUsers` contains more than one entry, **ask the user which role to use** before proceeding. Then switch if needed:
+
+```bash
+curl -s -X POST "$EHR/api/user/v1/auth/update/active" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"newUserId": TARGET_ID}'
+```
+
+No re-authentication is required — the existing token is sufficient. Skip this step only if the user has already confirmed their active role earlier in the conversation.
+
 ## Document types and workflows
 
 | Document | Type code | Workflow file | Use case |
