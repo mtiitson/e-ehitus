@@ -40,14 +40,14 @@ for (const cmd of commands) {
     const shimPath = join(installDir, `${cmd}.cmd`);
     writeFileSync(shimPath, [
       "@echo off",
-      `for /f "delims=" %%i in ('node -e "const{readdirSync,statSync}=require('fs'),{join}=require('path'),{homedir}=require('os');function f(d,n){try{for(const i of readdirSync(d)){const p=join(d,i);if(i===n)return p;if(statSync(p).isDirectory()){const r=f(p,n);if(r)return r;}}}catch{}return''}console.log(f(join(homedir(),'.claude'),'${scriptName}'))"') do set _S=%%i`,
+      `for /f "delims=" %%i in ('node -e "const{readdirSync,statSync}=require('fs'),{join}=require('path'),{homedir}=require('os');function f(d,n){try{for(const i of readdirSync(d)){const p=join(d,i);if(i===n&&p.includes('scripts'))return p;if(statSync(p).isDirectory()){const r=f(p,n);if(r)return r;}}}catch{}return''}console.log(f(join(homedir(),'.claude'),'${scriptName}'))"') do set _S=%%i`,
       `node "%_S%" %*`,
     ].join("\r\n") + "\r\n");
     console.log(`Installed: ${shimPath}`);
   } else {
     const shimPath = join(installDir, cmd);
     writeFileSync(shimPath,
-      `#!/bin/sh\nexec node "$(find ~/.claude -name '${scriptName}' 2>/dev/null | head -1)" "$@"\n`
+      `#!/bin/sh\nexec node "$(find ~/.claude -path '*/scripts/${scriptName}' 2>/dev/null | head -1)" "$@"\n`
     );
     chmodSync(shimPath, 0o755);
     console.log(`Installed: ${shimPath}`);
