@@ -87,7 +87,12 @@ curl -s -X POST "$EHR/api/user/v1/auth/update/active" \
   -d '{"newUserId": TARGET_ID}'
 ```
 
-`businessUsers[].id` with no `businessName` = the personal role. No re-authentication required — works with the existing token. The `connectedPerson` value for document search is the `businessUsers[].id` of the active role (not the top-level `id`).
+`businessUsers[].id` with no `businessName` = the personal role. No re-authentication (TARA/Mobile-ID) required. **After switching, force a token refresh** — the active role is encoded in the JWT's `ehr.active_role` claim, so the old token carries the previous role until refreshed:
+```bash
+jq '.expiresAt = 0' ~/ehr-token.json > /tmp/t.json && mv /tmp/t.json ~/ehr-token.json
+TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
+```
+The `connectedPerson` for document search is `businessUsers[].id` of the active role (not the top-level `id`).
 
 **Adding a person** requires a prior search to get `personId`:
 ```

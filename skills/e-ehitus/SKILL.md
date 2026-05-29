@@ -52,13 +52,20 @@ curl -s "$EHR/api/user/v1/person/details" -H "Authorization: Bearer $TOKEN" \
 If `businessUsers` contains more than one entry, **ask the user which role to use** before proceeding. Then switch if needed:
 
 ```bash
+# 1. Switch role
 curl -s -X POST "$EHR/api/user/v1/auth/update/active" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"newUserId": TARGET_ID}'
+
+# 2. Force token refresh — the active role is embedded in the JWT's ehr.active_role
+#    claim, so the old token still carries the previous role. Drop the cached access
+#    token so --print-token fetches a fresh one from Keycloak.
+jq '.expiresAt = 0' ~/ehr-token.json > /tmp/ehr-token-tmp.json && mv /tmp/ehr-token-tmp.json ~/ehr-token.json
+TOKEN=$(node <skill-dir>/scripts/ehr-auth.js --print-token)
 ```
 
-No re-authentication is required — the existing token is sufficient. Skip this step only if the user has already confirmed their active role earlier in the conversation.
+No re-authentication (TARA/Mobile-ID) is required. Skip this step only if the user has already confirmed their active role earlier in the conversation.
 
 ## Document types and workflows
 
