@@ -15,13 +15,19 @@ No installation needed. Pre-built scripts are in `scripts/` next to this file.
 
 **Prerequisites:** Node.js 18+ (bundled with Claude Code), `curl` (standard everywhere), `jq` (`brew install jq` on macOS, `winget install jqlang.jq` on Windows).
 
-**One-time setup** — installs `ehr-auth` and `ehr-api` as global commands:
+**Optional setup** — installs `ehr-auth` and `ehr-api` as global commands for convenience:
 ```bash
 node <skill-dir>/setup.js
 ```
-On macOS/Linux, also add `~/.local/bin` to your PATH if prompted. After setup, `ehr-auth` and `ehr-api` are available directly — no path prefix needed.
+After setup, `ehr-auth` and `ehr-api` work anywhere without a path prefix.
 
-**Resolving `<skill-dir>`:** Only needed to run setup.js. Find it with:
+**Without setup** — run directly from the skill directory:
+```bash
+node <skill-dir>/scripts/ehr-auth.js
+node <skill-dir>/scripts/ehr-api.js GET /api/path
+```
+
+**Resolving `<skill-dir>`:**
 ```bash
 find ~/.claude -name "setup.js" 2>/dev/null | head -1 | xargs dirname
 ```
